@@ -1,0 +1,68 @@
+---
+title: "PTED / Exercise 2"
+author: "Gioele Pinana"
+date: '2022-04-29'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Task 1: Import your Data
+Load the necessary libraries
+```{r}
+library(readr)        # to import tabular data (e.g. csv)
+library(dplyr)        # to manipulate (tabular) data
+library(ggplot2)      # to visualize data
+library(sf)           # to handle spatial vector data
+library(terra)        # To handle raster data
+library(lubridate)    # To handle dates and times
+
+```
+Import the downloaded csv
+```{r}
+wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") # adjust path
+
+wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, remove = FALSE)
+```
+
+## Task 2: Getting an Overview
+
+```{r}
+wildschwein_BE$timelag  <- as.integer(difftime(lead(wildschwein_BE$DatetimeUTC), wildschwein_BE$DatetimeUTC, units = c("secs")))
+wildschwein_BE
+```
+
+- How many individuals were tracked?
+the function count () lets you count the unic value of a variable
+```{r}
+wildschwein_BE %>% count(TierName)
+```
+3 individuals were tracked: Rosa, Ruth and Sabi
+
+- For how long were the individual tracked? Are there gaps?
+```{r}
+summary(wildschwein_BE$DatetimeUTC)
+summary(wildschwein_BE$timelag)
+```
+From 22. August 2014 until 27. Juli 2015. There is one missing values but also some outliers.
+
+- Were all individuals tracked concurrently or sequentially?
+```{r}
+ggplot(wildschwein_BE, aes(DatetimeUTC, TierName))+
+  geom_line()
+```
+Sabi from 08.2014 until 07.2015, Rosa from 11.2014 until 06.2015 and Ruth from 11.2014 until 07.2015.
+
+- What is the temporal sampling interval between the locations?
+15 minutes. 
+
+
+
+
+
+
+
