@@ -61,18 +61,85 @@ Sabi from 08.2014 until 07.2015, Rosa from 11.2014 until 06.2015 and Ruth from 1
 About 15 minutes. 
 
 ## Task 3: Deriving movement parameters I: Speed
-
 ```{r}
-E1=E[1:(n-1)]
-E2=E[2:n]
-N2=N[2:n]
-N1=N[1:(n-1)]
+n=dim(wildschwein_BE)[1]
+n=51247
+E1=wildschwein_BE$E[1:(n-1)]
+E2=wildschwein_BE$E[2:n]
+N1=wildschwein_BE$N[1:(n-1)]
+N2=wildschwein_BE$N[2:n]
 dist=sqrt((E1-E2)^2+(N1-N2)^2)
 
 wildschwein_BE$steplenght <- dist
 
-wildschwein_BE$speed <- dist/timelag
+wildschwein_BE$speed <- dist/wildschwein_BE$timelag
 ```
+
+## Task 4: Cross-scale movement analysis 
+
+```{r}
+caro <- read_delim("caro60.csv",",") 
+caro <- st_as_sf(caro, coords = c("E", "N"), remove = FALSE)
+```
+
+```{r}
+# 3
+caro_3 <- caro %>%
+  slice(seq(from = 1, to = 200, by = 3)) 
+
+caro_3$timelag  <- as.integer(difftime(lead(caro_3$DatetimeUTC), caro_3$DatetimeUTC, units = c("secs")))
+
+n=68
+E1=caro_3$E[1:(n-1)]
+E2=caro_3$E[2:n]
+N2=caro_3$N[2:n]
+N1=caro_3$N[1:(n-1)]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+
+caro_3$steplenght <- dist
+
+caro_3$speed <- dist/caro_3$timelag
+
+# 6
+caro_6 <- caro %>%
+  slice(seq(from = 1, to = 200, by = 6))
+
+caro_6$timelag  <- as.integer(difftime(lead(caro_6$DatetimeUTC), caro_6$DatetimeUTC, units = c("secs")))
+
+n=35
+E1=caro_6$E[1:(n-1)]
+E2=caro_6$E[2:n]
+N2=caro_6$N[2:n]
+N1=caro_6$N[1:(n-1)]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+
+caro_6$steplenght <- dist
+
+caro_6$speed <- dist/caro_6$timelag
+
+# 9
+caro_9 <- caro %>%
+  slice(seq(from = 1, to = 200, by = 9))
+
+caro_9$timelag  <- as.integer(difftime(lead(caro_9$DatetimeUTC), caro_9$DatetimeUTC, units = c("secs")))
+
+n=24
+E1=caro_9$E[1:(n-1)]
+E2=caro_9$E[2:n]
+N2=caro_9$N[2:n]
+N1=caro_9$N[1:(n-1)]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+
+caro_9$steplenght <- dist
+
+caro_9$speed <- dist/caro_9$timelag
+```
+
+
+
+
+
+
 
 
 
