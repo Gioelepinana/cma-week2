@@ -3,8 +3,8 @@ title: "PTED / Exercise 2"
 author: "Gioele Pinana"
 date: '2022-04-29'
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -30,7 +30,7 @@ wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, rem
 ```
 
 ## Task 2: Getting an Overview
-
+difference between subsequent rows, aggiungere descrizione 
 ```{r}
 wildschwein_BE$timelag  <- as.integer(difftime(lead(wildschwein_BE$DatetimeUTC), wildschwein_BE$DatetimeUTC, units = c("secs")))
 wildschwein_BE
@@ -58,7 +58,22 @@ ggplot(wildschwein_BE, aes(DatetimeUTC, TierName))+
 Sabi from 08.2014 until 07.2015, Rosa from 11.2014 until 06.2015 and Ruth from 11.2014 until 07.2015.
 
 - What is the temporal sampling interval between the locations?
-15 minutes. 
+About 15 minutes. 
+
+## Task 3: Deriving movement parameters I: Speed
+
+```{r}
+E1=E[1:(n-1)]
+E2=E[2:n]
+N2=N[2:n]
+N1=N[1:(n-1)]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+
+wildschwein_BE$steplenght <- dist
+
+wildschwein_BE$speed <- dist/timelag
+```
+
 
 
 
