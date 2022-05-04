@@ -3,8 +3,8 @@ title: "PTED / Exercise 2"
 author: "Gioele Pinana"
 date: '2022-04-29'
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Task 1: Import your Data
 Load the necessary libraries
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(readr)        # to import tabular data (e.g. csv)
 library(dplyr)        # to manipulate (tabular) data
 library(ggplot2)      # to visualize data
@@ -22,6 +22,7 @@ library(terra)        # To handle raster data
 library(lubridate)    # To handle dates and times
 
 ```
+
 Import the downloaded csv
 ```{r}
 wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") # adjust path
@@ -30,7 +31,8 @@ wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, rem
 ```
 
 ## Task 2: Getting an Overview
-difference between subsequent rows, aggiungere descrizione 
+
+time difference between subsequent rows. I used the function difftime() in combination with the function lead(). difftime calculates the time interval between to consecutive points and returns an object of the Class difftime, with as.integer I define that I want the output returned into an integer. Lead () return a vector of the same length as the input.
 ```{r}
 wildschwein_BE$timelag  <- as.integer(difftime(lead(wildschwein_BE$DatetimeUTC), wildschwein_BE$DatetimeUTC, units = c("secs")))
 wildschwein_BE
@@ -55,15 +57,20 @@ From 22. August 2014 until 27. Juli 2015. There is one missing values but also s
 ggplot(wildschwein_BE, aes(DatetimeUTC, TierName))+
   geom_line()
 ```
+
 Sabi from 08.2014 until 07.2015, Rosa from 11.2014 until 06.2015 and Ruth from 11.2014 until 07.2015.
 
 - What is the temporal sampling interval between the locations?
 About 15 minutes. 
 
 ## Task 3: Deriving movement parameters I: Speed
+
+The formula to calculate the velocity is v = euclidean distance / time. 
+distance. I defined what E1, E2, N1 and N2 are and then I first calculated the distance between two consecutive point using the formula given in the task. Finally I then calculated the speed and put the results in a new column. 
 ```{r}
-n=dim(wildschwein_BE)[1]
+n=dim(wildschwein_BE)[1] #or
 n=51247
+
 E1=wildschwein_BE$E[1:(n-1)]
 E2=wildschwein_BE$E[2:n]
 N1=wildschwein_BE$N[1:(n-1)]
@@ -73,15 +80,36 @@ dist=sqrt((E1-E2)^2+(N1-N2)^2)
 wildschwein_BE$steplenght <- dist
 
 wildschwein_BE$speed <- dist/wildschwein_BE$timelag
+# speed is calculated in m/s
 ```
 
 ## Task 4: Cross-scale movement analysis 
 
+To do the cross-scale movement analysis I first imported the new data set and I calculated timelag, steplength and speed using the same method I used in task 3 for the timespan of 1 minute. 
 ```{r}
 caro <- read_delim("caro60.csv",",") 
 caro <- st_as_sf(caro, coords = c("E", "N"), remove = FALSE)
+
+caro$timelag  <- as.integer(difftime(lead(caro$DatetimeUTC), caro$DatetimeUTC, units = c("secs")))
+
+n=201
+E1=caro$E[1:(n-1)]
+E2=caro$E[2:n]
+N2=caro$N[2:n]
+N1=caro$N[1:(n-1)]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+
+caro$steplenght <- dist
+
+caro$speed <- dist/caro$timelag
 ```
 
+To Analyse animal movement across different scales I had to reduce the granularity of the data by sub-setting the data to every nth element, I did it every 3rd, 6th and 9th position using slice() and seq() where from = 1, to = the length of the dataset and by = n. 
+
+* slice(): lets you index rows by their (integer) locations. It allows you to select, remove, and duplicate rows.
+* seq(): Generate regular sequences.
+
+Using the same method as above I also calculated the timelag, steplength and speed for each data frame.
 ```{r}
 # 3
 caro_3 <- caro %>%
@@ -135,16 +163,106 @@ caro_9$steplenght <- dist
 caro_9$speed <- dist/caro_9$timelag
 ```
 
+Now it make sense to compare the original data with the re sampled data. To do this, I used the package ggplot2 and a different combination of plotting fuction:
+
+* geom_path(): to plot the trajectories, it connets the observation in the order in which they appear in the data. 
+* geom_point(): to plot the locations.
+
+plot - Comparing original with 3 minutes re sampled data
+```{r}
+ggplot() + 
+  geom_path(data=caro, aes(x = E, y = N), color= "indianred2") + 
+  geom_path(data=caro_3, aes(x = E,y = N), color = "skyblue2") +
+  geom_point(data=caro, aes(x = E, y = N), color= "indianred2") + 
+  geom_point(data=caro_3, aes(x = E,y = N), color = "skyblue2") +
+  theme_classic() +
+  scale_color_manual(name='Trajectory',
+                     breaks=c('1 minute', '3 minutes'),
+                     values=c('1 minute'='indianred2', '3 minutes'='skyblue2'))
+```
+
+plot - Comparing original with 6 minutes resampled data
+```{r}
+ggplot() + 
+  geom_path(data=caro, aes(x = E, y = N), color= "indianred2") + 
+  geom_path(data=caro_6, aes(x = E,y = N), color = "skyblue2") +
+  geom_point(data=caro, aes(x = E, y = N), color= "indianred2") + 
+  geom_point(data=caro_6, aes(x = E,y = N), color = "skyblue2") +
+  theme_classic() +
+  scale_color_manual(name='Trajectory',
+                     breaks=c('1 minute', '6 minutes'),
+                     values=c('1 minute'='indianred2', '6 minutes'='skyblue2'))
+```
+
+plot - Comparing original with 9 minutes resampled data
+```{r}
+ggplot() + 
+  geom_path(data=caro, aes(x = E, y = N), color= "indianred2") + 
+  geom_path(data=caro_9, aes(x = E,y = N), color = "skyblue2") +
+    geom_point(data=caro, aes(x = E, y = N), color= "indianred2") + 
+  geom_point(data=caro_9, aes(x = E,y = N), color = "skyblue2") +
+  theme_classic() +
+  scale_color_manual(name='Trajectory',
+                     breaks=c('1 minute', '9 minutes'),
+                     values=c('1 minute'='indianred2', '9 minutes'='skyblue2'))
+```
+
+Plot - comparing derived speed at different sampling interval
+```{r warning=FALSE}
+ggplot() + 
+  geom_path(data=caro, aes(x = DatetimeUTC, y = speed), color= "indianred2") +
+  geom_path(data=caro_3, aes(x = DatetimeUTC, y = speed), color= "skyblue2") +
+  geom_path(data=caro_6, aes(x = DatetimeUTC, y = speed), color= "darkorchid2") +
+  geom_path(data=caro_9, aes(x = DatetimeUTC, y = speed), color= "springgreen3")+
+    scale_color_manual(name='Colour',
+                     breaks=c('1 minute', '3 minutes','6 minute', '9 minutes'),
+                     values=c('indianred2', 'skyblue2','darkorchid2', 'springgreen3')) +
+  theme_classic()
+```
+
+In these Graphs we see the influence of temporal scale on movement parameters such as speed, sinuosity, or turning angle. Exploring the degree of variation will be possible through the use of box whisker plots. In addition, the influence of uncertainty must be considered in order to draw more appropriate conclusions (Laube and Purves, 2011). 
+The last graph shows a general decrease in speed as the sampling interval increases (red= original data, blue= 3 minutes re sampled data, violet = 6 minutes re sampled data and green= 9 minutes re sampled data).
+
+## Task 5: Deriving movement parameters II: Rolling window functions
+
+Different approach using a moving window function (wanders over and always determines in a neighborhood the value).
+
+Loading the package zoo
+```{r, message=FALSE, warning=FALSE}
+library(zoo)
+```
+
+roll_mean() to smooth the calculated speed, using different k, which is the integer width of the rolling window.
+
+Some example with dummy data:
+```{r}
+example <- rnorm(10)
+rollmean(example,k = 3,fill = NA,align = "left")
+
+rollmean(example,k = 4,fill = NA,align = "left")
+```
+
+roll_mean() on speed, using the data set caro:
+```{r}
+caro$smoothed_speed_k2 <- rollmean(caro$speed,k = 2,fill = NA,align = "left")
+
+caro$smoothed_speed_k3 <- rollmean(caro$speed,k = 3,fill = NA,align = "left")
+
+caro$smoothed_speed_k4 <- rollmean(caro$speed,k = 4,fill = NA,align = "left")
+
+caro$smoothed_speed_k8 <- rollmean(caro$speed,k = 8,fill = NA,align = "left")
 
 
+```
 
+Visualisation k3 and k8
+```{r message= FALSE, warning=FALSE}
+ggplot() + 
+  geom_path(data=caro, aes(x = DatetimeUTC, y = smoothed_speed_k2), color= "indianred2")+
+  geom_path(data=caro, aes(x = DatetimeUTC, y = smoothed_speed_k8), color= "skyblue2")+
+  theme_classic()
+```
 
+## References 
 
-
-
-
-
-
-
-
-
+Laube P, Ross S. P. (2011) How fast is a cow? Cross-Scale Analysis of Movement Data. Transaction in gis. 15(3): 401–418
